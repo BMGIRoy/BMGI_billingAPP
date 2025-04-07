@@ -124,15 +124,21 @@ if uploaded_file:
     
 
     
+    
     st.subheader("🧑‍💼 Net Billing by Client")
-    if df_filtered[column_map['Client']].nunique() > 0:
-        client_chart = alt.Chart(df_filtered).mark_bar().encode(
+    client_data = df_filtered[[column_map['Client'], column_map['Net Amount']]].copy()
+    client_grouped = client_data.groupby(column_map['Client'])[column_map['Net Amount']].sum().reset_index()
+
+    if not client_grouped.empty and client_grouped[column_map['Net Amount']].sum() > 0:
+        client_chart = alt.Chart(client_grouped).mark_bar().encode(
             x=column_map['Net Amount'],
             y=alt.Y(column_map['Client'], sort='-x'),
-            color=column_map['Client'],
+            color=alt.value("#1f77b4"),
             tooltip=[column_map['Client'], column_map['Net Amount']]
         ).properties(width=800)
         st.altair_chart(client_chart, use_container_width=True)
+    else:
+        st.info("📭 No net billing data available for selected clients or filters.")
     else:
         st.warning("⚠️ No data to display in 'Net Billing by Client'.")
     
