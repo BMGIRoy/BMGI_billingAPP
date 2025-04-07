@@ -17,8 +17,27 @@ def load_data(uploaded_file):
 uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["xlsx"])
 if uploaded_file:
     df_all = load_data(uploaded_file)
-
     st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
+    st.sidebar.header("🗂️ Column Mapping")
+
+    column_map = {}
+    expected_columns = {
+        "Billed Amount": "Billed Amount",
+        "Net Amount": "Net Amount",
+        "Actual Days": "Actual Days",
+        "Target Days": "Target Days",
+        "Consultant": "Consultant",
+        "Client": "Client",
+        "Business Head": "Business Head"
+    }
+
+    for key in expected_columns:
+        options = [col for col in df_all.columns if pd.api.types.is_numeric_dtype(df_all[col]) or col.lower() == key.lower()]
+        selected = st.sidebar.selectbox(f"Map '{key}' to:", df_all.columns.tolist(), index=df_all.columns.get_loc(expected_columns[key]) if expected_columns[key] in df_all.columns else 0)
+        column_map[key] = selected
+
+    df_all.rename(columns=column_map, inplace=True)
+
     st.sidebar.header("🔍 Filters")
 
     consultant_options = df_all['Consultant'].dropna().unique().tolist()
