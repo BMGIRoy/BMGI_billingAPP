@@ -17,7 +17,7 @@ def load_data(uploaded_file):
 uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["xlsx"])
 if uploaded_file:
     df_all = load_data(uploaded_file)
-    st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
+    st.sidebar.markdown("ℹ️ [About this app](https://github.com/BMGIRoy/billing_app)")
     st.sidebar.header("🗂️ Column Mapping")
 
     column_map = {}
