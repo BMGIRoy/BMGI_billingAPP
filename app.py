@@ -55,6 +55,14 @@ if uploaded_file:
     team_options = df_all[column_map['Business Head']].dropna().unique().tolist()
     teams = st.sidebar.multiselect("Business Head", team_options, default=team_options)
 
+    
+    required_mapped_cols = ['Billed Amount', 'Net Amount', 'Actual Days', 'Target Days']
+    missing_mappings = [key for key in required_mapped_cols if key not in column_map or column_map[key] not in df_all.columns]
+
+    if missing_mappings:
+        st.error(f"⚠️ Please make sure these columns are mapped correctly: {', '.join(missing_mappings)}")
+        st.stop()
+
     df_filtered = df_all[
         df_all[column_map['Consultant']].isin(consultants) &
         df_all[column_map['Client']].isin(clients) &
@@ -63,12 +71,28 @@ if uploaded_file:
         df_all[column_map['Business Head']].isin(teams)
     ]
 
+    
+    # 🔐 Final validation to catch mapping errors at metric time
+    try:
+        billed_col = column_map['Billed Amount']
+        net_col = column_map['Net Amount']
+        actual_col = column_map['Actual Days']
+        target_col = column_map['Target Days']
+        billed_total = df_filtered[billed_col].sum()
+        net_total = df_filtered[net_col].sum()
+        actual_total = df_filtered[actual_col].sum()
+        target_total = df_filtered[target_col].sum()
+    except KeyError as e:
+        st.error(f"❌ Required column mapping is missing or incorrect: {e}")
+        st.stop()
+
     st.subheader("📈 Key Metrics")
+    
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Billed", f"₹{df_filtered[column_map['Billed Amount']].sum():,.0f}")
-    col2.metric("Total Net Amount", f"₹{df_filtered[column_map['Net Amount']].sum():,.0f}")
-    col3.metric("Actual Days", f"{df_filtered[column_map['Actual Days']].sum():.1f}")
-    col4.metric("Target Days", f"{df_filtered[column_map['Target Days']].sum():.1f}")
+    col1.metric("Total Billed", f"₹{billed_total:,.0f}")
+    col2.metric("Total Net Amount", f"₹{net_total:,.0f}")
+    col3.metric("Actual Days", f"{actual_total:.1f}")
+    col4.metric("Target Days", f"{target_total:.1f}")
 
     st.subheader("📊 Billing by Consultant")
     consultant_chart = alt.Chart(df_filtered).mark_bar().encode(
