@@ -19,14 +19,22 @@ if uploaded_file:
     df_all = load_data(uploaded_file)
 
     st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
-st.sidebar.header("🔍 Filters")
-    consultants = st.sidebar.multiselect("Consultant", df_all['Consultant'].dropna().unique(), default=df_all['Consultant'].unique())
-    clients = st.sidebar.multiselect("Client", df_all['Client'].dropna().unique(), default=df_all['Client'].unique())
+    st.sidebar.header("🔍 Filters")
+
+    consultant_options = df_all['Consultant'].dropna().unique().tolist()
+    consultants = st.sidebar.multiselect("Consultant", consultant_options, default=consultant_options)
+
+    client_options = df_all['Client'].dropna().unique().tolist()
+    clients = st.sidebar.multiselect("Client", client_options, default=client_options)
+
     month_options = df_all['Month'].dropna().unique().tolist()
     months = st.sidebar.multiselect("Month", month_options, default=month_options)
+
     year_options = df_all['Year'].dropna().unique().tolist()
     years = st.sidebar.multiselect("Year", year_options, default=year_options)
-    teams = st.sidebar.multiselect("Business Head", df_all['Business Head'].dropna().unique(), default=df_all['Business Head'].unique())
+
+    team_options = df_all['Business Head'].dropna().unique().tolist()
+    teams = st.sidebar.multiselect("Business Head", team_options, default=team_options)
 
     df_filtered = df_all[
         df_all['Consultant'].isin(consultants) &
