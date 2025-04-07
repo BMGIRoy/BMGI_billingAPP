@@ -139,8 +139,7 @@ if uploaded_file:
         st.altair_chart(client_chart, use_container_width=True)
     else:
         st.info("📭 No net billing data available for selected clients or filters.")
-    else:
-        st.warning("⚠️ No data to display in 'Net Billing by Client'.")
+
     
 
     
