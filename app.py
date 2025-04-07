@@ -40,10 +40,10 @@ if uploaded_file:
 
     st.sidebar.header("🔍 Filters")
 
-    consultant_options = df_all['Consultant'].dropna().unique().tolist()
+    consultant_options = df_all[column_map['Consultant']].dropna().unique().tolist()
     consultants = st.sidebar.multiselect("Consultant", consultant_options, default=consultant_options)
 
-    client_options = df_all['Client'].dropna().unique().tolist()
+    client_options = df_all[column_map['Client']].dropna().unique().tolist()
     clients = st.sidebar.multiselect("Client", client_options, default=client_options)
 
     month_options = df_all['Month'].dropna().unique().tolist()
@@ -52,23 +52,23 @@ if uploaded_file:
     year_options = df_all['Year'].dropna().unique().tolist()
     years = st.sidebar.multiselect("Year", year_options, default=year_options)
 
-    team_options = df_all['Business Head'].dropna().unique().tolist()
+    team_options = df_all[column_map['Business Head']].dropna().unique().tolist()
     teams = st.sidebar.multiselect("Business Head", team_options, default=team_options)
 
     df_filtered = df_all[
-        df_all['Consultant'].isin(consultants) &
-        df_all['Client'].isin(clients) &
+        df_all[column_map['Consultant']].isin(consultants) &
+        df_all[column_map['Client']].isin(clients) &
         df_all['Month'].isin(months) &
         df_all['Year'].isin(years) &
-        df_all['Business Head'].isin(teams)
+        df_all[column_map['Business Head']].isin(teams)
     ]
 
     st.subheader("📈 Key Metrics")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Billed", f"₹{df_filtered['Billed Amount'].sum():,.0f}")
-    col2.metric("Total Net Amount", f"₹{df_filtered['Net Amount'].sum():,.0f}")
-    col3.metric("Actual Days", f"{df_filtered['Actual Days'].sum():.1f}")
-    col4.metric("Target Days", f"{df_filtered['Target Days'].sum():.1f}")
+    col1.metric("Total Billed", f"₹{df_filtered[column_map['Billed Amount']].sum():,.0f}")
+    col2.metric("Total Net Amount", f"₹{df_filtered[column_map['Net Amount']].sum():,.0f}")
+    col3.metric("Actual Days", f"{df_filtered[column_map['Actual Days']].sum():.1f}")
+    col4.metric("Target Days", f"{df_filtered[column_map['Target Days']].sum():.1f}")
 
     st.subheader("📊 Billing by Consultant")
     consultant_chart = alt.Chart(df_filtered).mark_bar().encode(
