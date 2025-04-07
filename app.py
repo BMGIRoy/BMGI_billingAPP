@@ -94,42 +94,62 @@ if uploaded_file:
     col3.metric("Actual Days", f"{actual_total:.1f}")
     col4.metric("Target Days", f"{target_total:.1f}")
 
+    
     st.subheader("📊 Billing by Consultant")
-    consultant_chart = alt.Chart(df_filtered).mark_bar().encode(
-        x='Consultant',
-        y='Billed Amount',
-        color='Consultant',
-        tooltip=['Consultant', 'Billed Amount']
-    ).properties(width=800)
-    st.altair_chart(consultant_chart, use_container_width=True)
+    if df_filtered[column_map['Consultant']].nunique() > 0:
+        consultant_chart = alt.Chart(df_filtered).mark_bar().encode(
+            x=column_map['Consultant'],
+            y=column_map['Billed Amount'],
+            color=column_map['Consultant'],
+            tooltip=[column_map['Consultant'], column_map['Billed Amount']]
+        ).properties(width=800)
+        st.altair_chart(consultant_chart, use_container_width=True)
+    else:
+        st.warning("⚠️ No data to display in 'Billing by Consultant'.")
+    
 
+    
     st.subheader("📆 Monthly Net Billing Trend")
-    monthly_trend = df_filtered.groupby(['Year', 'Month'])['Net Amount'].sum().reset_index()
-    monthly_trend['MonthYear'] = monthly_trend['Month'] + ' ' + monthly_trend['Year'].astype(str)
-    line_chart = alt.Chart(monthly_trend).mark_line(point=True).encode(
-        x='MonthYear:N',
-        y='Net Amount:Q',
-        tooltip=['MonthYear', 'Net Amount']
-    ).properties(width=800)
-    st.altair_chart(line_chart, use_container_width=True)
+    monthly_trend = df_filtered.groupby(['Year', 'Month'])[column_map['Net Amount']].sum().reset_index()
+    if not monthly_trend.empty:
+        monthly_trend['MonthYear'] = monthly_trend['Month'] + ' ' + monthly_trend['Year'].astype(str)
+        line_chart = alt.Chart(monthly_trend).mark_line(point=True).encode(
+            x='MonthYear:N',
+            y=column_map['Net Amount'] + ':Q',
+            tooltip=['MonthYear', column_map['Net Amount']]
+        ).properties(width=800)
+        st.altair_chart(line_chart, use_container_width=True)
+    else:
+        st.warning("⚠️ No data to display in 'Monthly Net Billing Trend'.")
+    
 
+    
     st.subheader("🧑‍💼 Net Billing by Client")
-    client_chart = alt.Chart(df_filtered).mark_bar().encode(
-        x='Net Amount',
-        y=alt.Y('Client', sort='-x'),
-        color='Client',
-        tooltip=['Client', 'Net Amount']
-    ).properties(width=800)
-    st.altair_chart(client_chart, use_container_width=True)
+    if df_filtered[column_map['Client']].nunique() > 0:
+        client_chart = alt.Chart(df_filtered).mark_bar().encode(
+            x=column_map['Net Amount'],
+            y=alt.Y(column_map['Client'], sort='-x'),
+            color=column_map['Client'],
+            tooltip=[column_map['Client'], column_map['Net Amount']]
+        ).properties(width=800)
+        st.altair_chart(client_chart, use_container_width=True)
+    else:
+        st.warning("⚠️ No data to display in 'Net Billing by Client'.")
+    
 
+    
     st.subheader("👥 Team-Level Billing by Business Head")
-    team_chart = alt.Chart(df_filtered).mark_bar().encode(
-        x='Business Head',
-        y='Net Amount',
-        color='Business Head',
-        tooltip=['Business Head', 'Net Amount']
-    ).properties(width=800)
-    st.altair_chart(team_chart, use_container_width=True)
+    if df_filtered[column_map['Business Head']].nunique() > 0:
+        team_chart = alt.Chart(df_filtered).mark_bar().encode(
+            x=column_map['Business Head'],
+            y=column_map['Net Amount'],
+            color=column_map['Business Head'],
+            tooltip=[column_map['Business Head'], column_map['Net Amount']]
+        ).properties(width=800)
+        st.altair_chart(team_chart, use_container_width=True)
+    else:
+        st.warning("⚠️ No data to display in 'Team-Level Billing'.")
+    
 
     st.subheader("🗂️ Detailed Data Table")
     st.dataframe(df_filtered.reset_index(drop=True))
