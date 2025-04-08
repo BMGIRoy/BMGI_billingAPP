@@ -13,14 +13,13 @@ def load_data(uploaded_file):
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df['Month'] = df['Date'].dt.strftime('%b')
     df['Year'] = df['Date'].dt.year
-    df['Month_Num'] = df['Date'].dt.month
+    df['MonthNum'] = df['Date'].dt.month
     return df
-
-month_order = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
 
 uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["xlsx"])
 if uploaded_file:
     df_all = load_data(uploaded_file)
+
     st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
     st.sidebar.header("🗂️ Column Mapping")
 
@@ -44,11 +43,27 @@ if uploaded_file:
 
     st.sidebar.header("🔍 Filters")
 
-    consultants = st.sidebar.multiselect("Consultant", df_all[column_map['Consultant']].dropna().unique(), default=df_all[column_map['Consultant']].dropna().unique())
-    clients = st.sidebar.multiselect("Client", df_all[column_map['Client']].dropna().unique(), default=df_all[column_map['Client']].dropna().unique())
-    months = st.sidebar.multiselect("Month", month_order, default=month_order)
-    years = st.sidebar.multiselect("Year", df_all['Year'].dropna().unique(), default=df_all['Year'].dropna().unique())
-    teams = st.sidebar.multiselect("Business Head", df_all[column_map['Business Head']].dropna().unique(), default=df_all[column_map['Business Head']].dropna().unique())
+    consultant_options = df_all[column_map['Consultant']].dropna().unique().tolist()
+    consultants = st.sidebar.multiselect("Consultant", consultant_options, default=consultant_options)
+
+    client_options = df_all[column_map['Client']].dropna().unique().tolist()
+    clients = st.sidebar.multiselect("Client", client_options, default=client_options)
+
+    month_options = df_all['Month'].dropna().unique().tolist()
+    months = st.sidebar.multiselect("Month", month_options, default=month_options)
+
+    year_options = df_all['Year'].dropna().unique().tolist()
+    years = st.sidebar.multiselect("Year", year_options, default=year_options)
+
+    team_options = df_all[column_map['Business Head']].dropna().unique().tolist()
+    teams = st.sidebar.multiselect("Business Head", team_options, default=team_options)
+
+    required_mapped_cols = ['Billed Amount', 'Net Amount', 'Actual Days', 'Target Days']
+    missing_mappings = [key for key in required_mapped_cols if key not in column_map or column_map[key] not in df_all.columns]
+
+    if missing_mappings:
+        st.error(f"⚠️ Please make sure these columns are mapped correctly: {', '.join(missing_mappings)}")
+        st.stop()
 
     df_filtered = df_all[
         df_all[column_map['Consultant']].isin(consultants) &
@@ -58,29 +73,51 @@ if uploaded_file:
         df_all[column_map['Business Head']].isin(teams)
     ]
 
-    # Summary and trend
-    st.subheader("📅 Month-wise Summary")
-    df_filtered['Month'] = pd.Categorical(df_filtered['Month'], categories=month_order, ordered=True)
-    month_summary = df_filtered.groupby(['Year', 'Month'])[[column_map['Billed Amount'], column_map['Net Amount']]].sum().reset_index().sort_values(by=['Year', 'Month'])
-    st.dataframe(month_summary)
+    # Metrics
+    billed_total = df_filtered[column_map['Billed Amount']].sum()
+    net_total = df_filtered[column_map['Net Amount']].sum()
+    actual_total = df_filtered[column_map['Actual Days']].sum()
+    target_total = df_filtered[column_map['Target Days']].sum()
 
-    chart = alt.Chart(month_summary).mark_line(point=True).encode(
-        x=alt.X('Month:N', sort=month_order),
-        y=alt.Y(column_map['Net Amount'], title='Net Amount'),
-        color='Year:N',
-        tooltip=['Year', 'Month', column_map['Net Amount']]
-    ).properties(width=800)
-    st.altair_chart(chart, use_container_width=True)
+    st.subheader("📈 Key Metrics")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Billed", f"₹{billed_total:,.0f}")
+    col2.metric("Total Net Amount", f"₹{net_total:,.0f}")
+    col3.metric("Actual Days", f"{actual_total:.1f}")
+    col4.metric("Target Days", f"{target_total:.1f}")
 
-    # Export option
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-        month_summary.to_excel(writer, index=False)
-    st.download_button(
-        label="Download Month-wise Summary",
-        data=excel_buffer.getvalue(),
-        file_name="month_wise_summary.xlsx",
+    # Monthly Trend (Fiscal Year)
+    st.subheader("📆 Monthly Net Billing Trend")
+    monthly_trend = df_filtered.copy()
+    monthly_trend['MonthNum'] = pd.to_datetime(monthly_trend[column_map["Date"]]).dt.month
+    monthly_trend['FiscalYear'] = pd.to_datetime(monthly_trend[column_map["Date"]]).apply(lambda d: d.year if d.month >= 4 else d.year - 1)
+    monthly_trend['Month'] = pd.to_datetime(monthly_trend[column_map["Date"]]).dt.strftime('%b')
+
+    order = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
+    monthly_summary = monthly_trend.groupby(['FiscalYear', 'Month', 'MonthNum'])[column_map["Net Amount"]].sum().reset_index()
+    monthly_summary['Month'] = pd.Categorical(monthly_summary['Month'], categories=order, ordered=True)
+    monthly_summary = monthly_summary.sort_values(by=['FiscalYear', 'Month'])
+
+    line_chart = alt.Chart(monthly_summary).mark_line(point=True).encode(
+        x=alt.X('Month:N', sort=order),
+        y=alt.Y(column_map["Net Amount"], title="Net Amount"),
+        color='FiscalYear:N',
+        tooltip=['FiscalYear', 'Month', column_map["Net Amount"]]
+    ).properties(width=900)
+    st.altair_chart(line_chart, use_container_width=True)
+
+    # Export section
+    st.subheader("🗂️ Detailed Data Table")
+    st.dataframe(df_filtered.reset_index(drop=True))
+
+    st.sidebar.markdown("### 📤 Export Data")
+    export_df = df_filtered.copy()
+    excel_data = io.BytesIO()
+    with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+        export_df.to_excel(writer, index=False, sheet_name="Filtered Data")
+    st.sidebar.download_button(
+        label="Download Filtered Data as Excel",
+        data=excel_data.getvalue(),
+        file_name="filtered_billing_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-else:
-    st.info("Upload the Excel sheet to begin.")
