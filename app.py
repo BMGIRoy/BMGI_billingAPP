@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -19,7 +18,7 @@ uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["
 if uploaded_file:
     df_all = load_data(uploaded_file)
     st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
-    st.sidebar.header("🗂️ Column Mapping")
+    st.sidebar.header("📂️ Column Mapping")
 
     column_map = {}
     expected_columns = {
@@ -34,27 +33,24 @@ if uploaded_file:
     }
 
     for key in expected_columns:
-        selected = st.sidebar.selectbox(
-            f"Map '{key}' to:", 
-            df_all.columns.tolist(), 
-            index=df_all.columns.get_loc(expected_columns[key]) if expected_columns[key] in df_all.columns else 0
-        )
+        selected = st.sidebar.selectbox(f"Map '{key}' to:", df_all.columns.tolist(), index=df_all.columns.get_loc(expected_columns[key]) if expected_columns[key] in df_all.columns else 0)
         column_map[key] = selected
 
     df_all.rename(columns=column_map, inplace=True)
 
     st.sidebar.header("🔍 Filters")
+
     consultants = st.sidebar.multiselect("Consultant", df_all[column_map['Consultant']].dropna().unique(), default=df_all[column_map['Consultant']].dropna().unique())
     clients = st.sidebar.multiselect("Client", df_all[column_map['Client']].dropna().unique(), default=df_all[column_map['Client']].dropna().unique())
     months = st.sidebar.multiselect("Month", df_all['Month'].dropna().unique(), default=df_all['Month'].dropna().unique())
     years = st.sidebar.multiselect("Year", df_all['Year'].dropna().unique(), default=df_all['Year'].dropna().unique())
     teams = st.sidebar.multiselect("Business Head", df_all[column_map['Business Head']].dropna().unique(), default=df_all[column_map['Business Head']].dropna().unique())
 
-    required_mapped_cols = ['Billed Amount', 'Net Amount', 'Actual Days', 'Target Days']
-    missing_mappings = [key for key in required_mapped_cols if key not in column_map or column_map[key] not in df_all.columns]
+    required_cols = ['Billed Amount', 'Net Amount', 'Actual Days', 'Target Days']
+    missing = [col for col in required_cols if col not in column_map or column_map[col] not in df_all.columns]
 
-    if missing_mappings:
-        st.error(f"⚠️ Please make sure these columns are mapped correctly: {', '.join(missing_mappings)}")
+    if missing:
+        st.error(f"⚠️ Please map the following correctly: {', '.join(missing)}")
         st.stop()
 
     df_filtered = df_all[
@@ -65,118 +61,76 @@ if uploaded_file:
         df_all[column_map['Business Head']].isin(teams)
     ]
 
-    try:
-        billed_total = df_filtered[column_map['Billed Amount']].sum()
-        net_total = df_filtered[column_map['Net Amount']].sum()
-        actual_total = df_filtered[column_map['Actual Days']].sum()
-        target_total = df_filtered[column_map['Target Days']].sum()
-    except KeyError as e:
-        st.error(f"❌ Required column mapping is missing or incorrect: {e}")
-        st.stop()
-
     st.subheader("📈 Key Metrics")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Billed", f"₹{billed_total:,.0f}")
-    col2.metric("Total Net Amount", f"₹{net_total:,.0f}")
-    col3.metric("Actual Days", f"{actual_total:.1f}")
-    col4.metric("Target Days", f"{target_total:.1f}")
+    col1.metric("Total Billed", f"₹{df_filtered[column_map['Billed Amount']].sum():,.0f}")
+    col2.metric("Total Net Amount", f"₹{df_filtered[column_map['Net Amount']].sum():,.0f}")
+    col3.metric("Actual Days", f"{df_filtered[column_map['Actual Days']].sum():.1f}")
+    col4.metric("Target Days", f"{df_filtered[column_map['Target Days']].sum():.1f}")
 
     st.subheader("📊 Billing by Consultant")
     if df_filtered[column_map['Consultant']].nunique() > 0:
-        chart = alt.Chart(df_filtered).mark_bar().encode(
-            x=column_map['Consultant'], y=column_map['Billed Amount'], color=column_map['Consultant'],
-            tooltip=[column_map['Consultant'], column_map['Billed Amount']]
+        st.altair_chart(
+            alt.Chart(df_filtered).mark_bar().encode(
+                x=column_map['Consultant'],
+                y=column_map['Billed Amount'],
+                color=column_map['Consultant'],
+                tooltip=[column_map['Consultant'], column_map['Billed Amount']]
+            ).properties(width=800),
+            use_container_width=True
         )
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.warning("⚠️ No data to display in 'Billing by Consultant'.")
 
     st.subheader("📆 Monthly Net Billing Trend")
     monthly_trend = df_filtered.groupby(['Year', 'Month'])[column_map['Net Amount']].sum().reset_index()
     if not monthly_trend.empty:
         monthly_trend['MonthYear'] = monthly_trend['Month'] + ' ' + monthly_trend['Year'].astype(str)
-        line_chart = alt.Chart(monthly_trend).mark_line(point=True).encode(
-            x='MonthYear:N', y=column_map['Net Amount'] + ':Q', tooltip=['MonthYear', column_map['Net Amount']]
+        st.altair_chart(
+            alt.Chart(monthly_trend).mark_line(point=True).encode(
+                x=alt.X('MonthYear:N', sort=None),
+                y=alt.Y(column_map['Net Amount'], title="Net Amount"),
+                tooltip=['MonthYear', column_map['Net Amount']]
+            ).properties(width=800),
+            use_container_width=True
         )
-        st.altair_chart(line_chart, use_container_width=True)
-    else:
-        st.warning("⚠️ No data to display in 'Monthly Net Billing Trend'.")
 
     st.subheader("🧑‍💼 Net Billing by Client")
-    client_data = df_filtered[[column_map['Client'], column_map['Net Amount']]].copy()
-    client_grouped = client_data.groupby(column_map['Client'])[column_map['Net Amount']].sum().reset_index()
-    if not client_grouped.empty:
-        chart = alt.Chart(client_grouped).mark_bar().encode(
-            x=column_map['Net Amount'], y=alt.Y(column_map['Client'], sort='-x'),
-            color=alt.value("#1f77b4"), tooltip=[column_map['Client'], column_map['Net Amount']]
+    client_summary = df_filtered.groupby(column_map['Client'])[column_map['Net Amount']].sum().reset_index()
+    if not client_summary.empty:
+        st.altair_chart(
+            alt.Chart(client_summary).mark_bar().encode(
+                x=column_map['Net Amount'],
+                y=alt.Y(column_map['Client'], sort='-x'),
+                tooltip=[column_map['Client'], column_map['Net Amount']]
+            ).properties(width=800),
+            use_container_width=True
         )
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.info("📭 No net billing data available for selected clients or filters.")
 
-    st.subheader("👥 Team-Level Billing by Business Head")
-    if df_filtered[column_map['Business Head']].nunique() > 0:
-        chart = alt.Chart(df_filtered).mark_bar().encode(
-            x=column_map['Business Head'], y=column_map['Net Amount'], color=column_map['Business Head'],
-            tooltip=[column_map['Business Head'], column_map['Net Amount']]
+    st.subheader("👥 Team-wise Net Billing Summary")
+    team_summary = df_filtered.groupby(column_map['Business Head'])[[column_map['Billed Amount'], column_map['Net Amount']]].sum().reset_index()
+    if not team_summary.empty:
+        st.altair_chart(
+            alt.Chart(team_summary).mark_bar().encode(
+                x=column_map['Net Amount'],
+                y=alt.Y(column_map['Business Head'], sort='-x'),
+                tooltip=[column_map['Business Head'], column_map['Net Amount']]
+            ).properties(width=800),
+            use_container_width=True
         )
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.warning("⚠️ No data to display in 'Team-Level Billing'.")
-
-    st.subheader("🗂️ Detailed Data Table")
-    st.dataframe(df_filtered.reset_index(drop=True))
-
-    # ========== SAFE EXPORT & SUMMARIES ==========
-    st.sidebar.markdown("### 📤 Export Data")
-    export_df = df_filtered.copy()
-    excel_data = io.BytesIO()
-    with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
-        export_df.to_excel(writer, index=False, sheet_name="Filtered Data")
-    st.sidebar.download_button(
-        label="Download Filtered Data as Excel",
-        data=excel_data.getvalue(),
-        file_name="filtered_billing_data.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    # 📅 Month-wise Summary
-    st.subheader("📅 Month-wise Summary")
-    try:
-        month_summary = df_filtered.groupby(['Year', 'Month'])[[
-            column_map['Billed Amount'], column_map['Net Amount']
-        ]].sum().reset_index()
-        st.dataframe(month_summary)
-        month_excel = io.BytesIO()
-        with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
-            month_summary.to_excel(writer, index=False, sheet_name="Month Summary")
-        st.download_button(
-            label="Download Month-wise Summary",
-            data=month_excel.getvalue(),
-            file_name="month_wise_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception as e:
-        st.error(f"Failed to generate summary: {e}")
-
-    # 👥 Team-wise Summary
-    st.subheader("👥 Team-wise Summary (Business Head)")
-    try:
-        team_summary = df_filtered.groupby(column_map['Business Head'])[[
-            column_map['Billed Amount'], column_map['Net Amount']
-        ]].sum().reset_index()
         st.dataframe(team_summary)
-        team_excel = io.BytesIO()
-        with pd.ExcelWriter(team_excel, engine="xlsxwriter") as writer:
-            team_summary.to_excel(writer, index=False, sheet_name="Team Summary")
-        st.download_button(
-            label="Download Team-wise Summary",
-            data=team_excel.getvalue(),
-            file_name="team_wise_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception as e:
-        st.error(f"Failed to generate team summary: {e}")
 
-else:
-    st.info("Upload the Excel sheet to begin.")
+    st.subheader("📅 Month-wise Summary")
+    month_summary = df_filtered.groupby(['Year', 'Month'])[[column_map['Billed Amount'], column_map['Net Amount']]].sum().reset_index()
+    if not month_summary.empty:
+        st.altair_chart(
+            alt.Chart(month_summary).mark_line(point=True).encode(
+                x=alt.X('Month', sort=None),
+                y=column_map['Net Amount'],
+                color='Year:N',
+                tooltip=['Year', 'Month', column_map['Net Amount']]
+            ).properties(width=800),
+            use_container_width=True
+        )
+        st.dataframe(month_summary)
+
+    st.subheader("📋 Full Data Table")
+    st.dataframe(df_filtered.reset_index(drop=True))
