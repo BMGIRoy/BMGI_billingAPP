@@ -183,8 +183,9 @@ if 'df_filtered' in locals():
     # 📅 Month-wise Summary
     st.subheader("📅 Month-wise Summary")
 
-    df_filtered["Year"] = df_filtered[column_map["Date"]].dt.year
-    df_filtered["Month"] = df_filtered[column_map["Date"]].dt.strftime("%b")
+    # Rebuild Year and Month in case they're missing
+    df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
+    df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
 
     month_summary = df_filtered.groupby(["Year", "Month"])[
         column_map["Billed Amount"], column_map["Net Amount"]
