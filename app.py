@@ -188,13 +188,13 @@ if 'df_filtered' in locals():
     df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
     # 👇 Check if these columns exist before grouping
 if "Year" in df_filtered.columns and "Month" in df_filtered.columns:
-    try:
+try:
         month_summary = df_filtered.groupby(["Year", "Month"])[
-        column_map["Billed Amount"], column_map["Net Amount"]
+            column_map["Billed Amount"], column_map["Net Amount"]
     ].sum().reset_index()
     st.dataframe(month_summary)
-    except Exception as e:
-        st.error(f"Failed to generate summary: {e}")
+except Exception as e:
+    st.error(f"Failed to generate summary: {e}")
 
 
     month_excel = io.BytesIO()
