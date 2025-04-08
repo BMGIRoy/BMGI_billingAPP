@@ -28,6 +28,7 @@ if uploaded_file:
         "Target Days": "Target Days",
         "Consultant": "Consultant",
         "Client": "Client",
+        "Date": "Date",
         "Business Head": "Business Head"
     }
 
