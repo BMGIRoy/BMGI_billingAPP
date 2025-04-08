@@ -13,12 +13,13 @@ def load_data(uploaded_file):
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df['Month'] = df['Date'].dt.strftime('%b')
     df['Year'] = df['Date'].dt.year
-    df['Month_Num'] = df['Date'].dt.month
+    df['MonthNum'] = df['Date'].dt.month
     return df
 
 uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["xlsx"])
 if uploaded_file:
     df_all = load_data(uploaded_file)
+
     st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
     st.sidebar.header("🗂️ Column Mapping")
 
@@ -60,15 +61,13 @@ if uploaded_file:
         df_all[column_map['Business Head']].isin(teams)
     ]
 
-    # Key Metrics
     st.subheader("📈 Key Metrics")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Billed", f"₹{df_filtered[column_map['Billed Amount']].sum():,.0f}")
     col2.metric("Total Net Amount", f"₹{df_filtered[column_map['Net Amount']].sum():,.0f}")
-    col3.metric("Actual Days", f"{df_filtered[column_map['Actual Days']].sum():,.1f}")
-    col4.metric("Target Days", f"{df_filtered[column_map['Target Days']].sum():,.1f}")
+    col3.metric("Actual Days", f"{df_filtered[column_map['Actual Days']].sum():.1f}")
+    col4.metric("Target Days", f"{df_filtered[column_map['Target Days']].sum():.1f}")
 
-    # Consultant-wise Chart
     st.subheader("🧑‍💼 Billing by Consultant")
     if df_filtered[column_map['Consultant']].nunique() > 0:
         consultant_chart = alt.Chart(df_filtered).mark_bar().encode(
@@ -79,9 +78,8 @@ if uploaded_file:
         ).properties(width=800)
         st.altair_chart(consultant_chart, use_container_width=True)
 
-    # Client-wise Chart
     st.subheader("🏢 Net Billing by Client")
-    client_data = df_filtered[[column_map['Client'], column_map['Net Amount']]]
+    client_data = df_filtered[[column_map['Client'], column_map['Net Amount']]].copy()
     client_grouped = client_data.groupby(column_map['Client'])[column_map['Net Amount']].sum().reset_index()
     if not client_grouped.empty:
         client_chart = alt.Chart(client_grouped).mark_bar().encode(
@@ -92,7 +90,6 @@ if uploaded_file:
         ).properties(width=800)
         st.altair_chart(client_chart, use_container_width=True)
 
-    # Team-wise Chart
     st.subheader("👥 Team-Level Billing by Business Head")
     if df_filtered[column_map['Business Head']].nunique() > 0:
         team_chart = alt.Chart(df_filtered).mark_bar().encode(
@@ -103,7 +100,6 @@ if uploaded_file:
         ).properties(width=800)
         st.altair_chart(team_chart, use_container_width=True)
 
-    # Monthly Net Billing Trend (Fiscal Order)
     st.subheader("📆 Monthly Net Billing Trend")
     trend_df = df_filtered.copy()
     trend_df['Month_Year'] = pd.to_datetime(trend_df[column_map['Date']]).dt.to_period('M').astype(str)
@@ -119,36 +115,21 @@ if uploaded_file:
     ).properties(width=800)
     st.altair_chart(trend_chart, use_container_width=True)
 
-    # 📅 Month-wise Summary Table and Chart
     st.subheader("📅 Month-wise Summary")
-    df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
     df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
+    df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
     df_filtered["Month_Num"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.month
     month_summary = df_filtered.groupby(["Year", "Month", "Month_Num"])[[column_map["Billed Amount"], column_map["Net Amount"]]].sum().reset_index()
     month_summary = month_summary.sort_values(["Year", "Month_Num"])
     st.dataframe(month_summary)
 
-    line = alt.Chart(month_summary).mark_line(point=True).encode(
-        x=alt.X("Month", sort=["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"]),
-        y=column_map["Net Amount"],
-        color="Year:O",
-        tooltip=["Year", "Month", column_map["Net Amount"]]
-    ).properties(width=800)
-    st.altair_chart(line, use_container_width=True)
-
-    # 👥 Team-wise Summary Table and Chart
     st.subheader("👥 Team-wise Summary")
     team_summary = df_filtered.groupby(column_map["Business Head"])[[column_map["Billed Amount"], column_map["Net Amount"]]].sum().reset_index()
     st.dataframe(team_summary)
 
-    team_bar = alt.Chart(team_summary).mark_bar().encode(
-        x=column_map["Business Head"],
-        y=column_map["Net Amount"],
-        tooltip=[column_map["Business Head"], column_map["Net Amount"]]
-    ).properties(width=800)
-    st.altair_chart(team_bar, use_container_width=True)
+    st.subheader("🗂️ Full Filtered Data")
+    st.dataframe(df_filtered.reset_index(drop=True))
 
-    # 📥 Export Filtered Data
     st.sidebar.markdown("### 📤 Export Data")
     export_df = df_filtered.copy()
     excel_data = io.BytesIO()
