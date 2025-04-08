@@ -17,7 +17,7 @@ def load_data(uploaded_file):
 uploaded_file = st.file_uploader("Upload the latest billing Excel file", type=["xlsx"])
 if uploaded_file:
     df_all = load_data(uploaded_file)
-    st.sidebar.markdown("ℹ️ [About this app](https://github.com/BMGIRoy/BMGI_billingAPP)")
+    st.sidebar.markdown("ℹ️ [About this app](https://github.com/yourusername/yourrepo)")
     st.sidebar.header("🗂️ Column Mapping")
 
     column_map = {}
@@ -163,59 +163,56 @@ else:
     st.info("Upload the Excel sheet to begin.")
 
 
-# ==============================
-# 📤 Export to Excel Section
-# ==============================
-import io
-st.sidebar.markdown("### 📤 Export Data")
-export_df = df_filtered.copy()
-excel_data = io.BytesIO()
-with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
-    export_df.to_excel(writer, index=False, sheet_name="Filtered Data")
-    writer.save()
-st.sidebar.download_button(
-    label="Download Filtered Data as Excel",
-    data=excel_data.getvalue(),
-    file_name="filtered_billing_data.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+# ========== SAFE EXPORT & SUMMARIES ==========
+if 'df_filtered' in locals():
+    import io
+    st.sidebar.markdown("### 📤 Export Data")
+    export_df = df_filtered.copy()
+    excel_data = io.BytesIO()
+    with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+        export_df.to_excel(writer, index=False, sheet_name="Filtered Data")
+        writer.save()
+    st.sidebar.download_button(
+        label="Download Filtered Data as Excel",
+        data=excel_data.getvalue(),
+        file_name="filtered_billing_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-# ==============================
-# 📅 Month-wise Summary
-# ==============================
-st.subheader("📅 Month-wise Summary")
-month_summary = df_filtered.groupby(["Year", "Month"])[
-    column_map["Billed Amount"], column_map["Net Amount"]
-].sum().reset_index()
-st.dataframe(month_summary)
+    # 📅 Month-wise Summary
+    st.subheader("📅 Month-wise Summary")
+    month_summary = df_filtered.groupby(["Year", "Month"])[
+        column_map["Billed Amount"], column_map["Net Amount"]
+    ].sum().reset_index()
+    st.dataframe(month_summary)
 
-month_excel = io.BytesIO()
-with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
-    month_summary.to_excel(writer, index=False, sheet_name="Month Summary")
-    writer.save()
-st.download_button(
-    label="Download Month-wise Summary",
-    data=month_excel.getvalue(),
-    file_name="month_wise_summary.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+    month_excel = io.BytesIO()
+    with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
+        month_summary.to_excel(writer, index=False, sheet_name="Month Summary")
+        writer.save()
+    st.download_button(
+        label="Download Month-wise Summary",
+        data=month_excel.getvalue(),
+        file_name="month_wise_summary.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-# ==============================
-# 👥 Team-wise Summary
-# ==============================
-st.subheader("👥 Team-wise Summary (Business Head)")
-team_summary = df_filtered.groupby(column_map["Business Head"])[
-    column_map["Billed Amount"], column_map["Net Amount"]
-].sum().reset_index()
-st.dataframe(team_summary)
+    # 👥 Team-wise Summary
+    st.subheader("👥 Team-wise Summary (Business Head)")
+    team_summary = df_filtered.groupby(column_map["Business Head"])[
+        column_map["Billed Amount"], column_map["Net Amount"]
+    ].sum().reset_index()
+    st.dataframe(team_summary)
 
-team_excel = io.BytesIO()
-with pd.ExcelWriter(team_excel, engine="xlsxwriter") as writer:
-    team_summary.to_excel(writer, index=False, sheet_name="Team Summary")
-    writer.save()
-st.download_button(
-    label="Download Team-wise Summary",
-    data=team_excel.getvalue(),
-    file_name="team_wise_summary.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+    team_excel = io.BytesIO()
+    with pd.ExcelWriter(team_excel, engine="xlsxwriter") as writer:
+        team_summary.to_excel(writer, index=False, sheet_name="Team Summary")
+        writer.save()
+    st.download_button(
+        label="Download Team-wise Summary",
+        data=team_excel.getvalue(),
+        file_name="team_wise_summary.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+else:
+    st.info("Upload the Excel sheet to enable export and summaries.")
