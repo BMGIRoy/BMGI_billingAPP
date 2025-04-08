@@ -181,18 +181,33 @@ if 'df_filtered' in locals():
     )
 
     # 📅 Month-wise Summary
-    st.subheader("📅 Month-wise Summary")
+st.subheader("📅 Month-wise Summary")
 
-    # Rebuild Year and Month in case they're missing
-    df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
-    df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
-    # 👇 Check if these columns exist before grouping
+# Rebuild Year and Month in case they're missing
+df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
+df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
+
+# 👇 Check if these columns exist before grouping
 if "Year" in df_filtered.columns and "Month" in df_filtered.columns:
     try:
         month_summary = df_filtered.groupby(["Year", "Month"])[
             column_map["Billed Amount"], column_map["Net Amount"]
-    ].sum().reset_index()
-    st.dataframe(month_summary)
+        ].sum().reset_index()
+
+        st.dataframe(month_summary)
+
+        # Export to Excel
+        month_excel = io.BytesIO()
+        with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
+            month_summary.to_excel(writer, index=False, sheet_name="Month Summary")
+
+        st.download_button(
+            label="Download Month-wise Summary",
+            data=month_excel.getvalue(),
+            file_name="month_wise_summary.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
     except Exception as e:
         st.error(f"Failed to generate summary: {e}")
 
