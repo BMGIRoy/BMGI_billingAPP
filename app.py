@@ -81,7 +81,7 @@ if uploaded_file:
     st.altair_chart(chart, use_container_width=True)
 
     # Net Billing by Client
-    st.subheader(":man_office_worker: Net Billing by Client")
+    st.subheader("🧑‍💼 Net Billing by Client")
     client_grouped = df_filtered.groupby(column_map['Client'])[column_map['Net Amount']].sum().reset_index()
     chart = alt.Chart(client_grouped).mark_bar().encode(
         x=column_map['Net Amount'], y=alt.Y(column_map['Client'], sort='-x'), color=alt.value('#1f77b4'),
