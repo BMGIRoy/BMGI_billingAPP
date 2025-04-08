@@ -193,6 +193,9 @@ if "Year" in df_filtered.columns and "Month" in df_filtered.columns:
         column_map["Billed Amount"], column_map["Net Amount"]
     ].sum().reset_index()
     st.dataframe(month_summary)
+    except Exception as e:
+        st.error(f"Failed to generate summary: {e}")
+
 
     month_excel = io.BytesIO()
     with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
