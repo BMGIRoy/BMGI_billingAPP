@@ -186,7 +186,9 @@ if 'df_filtered' in locals():
     # Rebuild Year and Month in case they're missing
     df_filtered["Year"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.year
     df_filtered["Month"] = pd.to_datetime(df_filtered[column_map["Date"]]).dt.strftime("%b")
-
+    # 👇 Check if these columns exist before grouping
+    if "Year" in df_filtered.columns and "Month" in df_filtered.columns:
+    try:
     month_summary = df_filtered.groupby(["Year", "Month"])[
         column_map["Billed Amount"], column_map["Net Amount"]
     ].sum().reset_index()
