@@ -171,7 +171,7 @@ if 'df_filtered' in locals():
     excel_data = io.BytesIO()
     with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
         export_df.to_excel(writer, index=False, sheet_name="Filtered Data")
-        writer.save()
+        
     st.sidebar.download_button(
         label="Download Filtered Data as Excel",
         data=excel_data.getvalue(),
@@ -189,7 +189,7 @@ if 'df_filtered' in locals():
     month_excel = io.BytesIO()
     with pd.ExcelWriter(month_excel, engine="xlsxwriter") as writer:
         month_summary.to_excel(writer, index=False, sheet_name="Month Summary")
-        writer.save()
+        
     st.download_button(
         label="Download Month-wise Summary",
         data=month_excel.getvalue(),
@@ -207,7 +207,7 @@ if 'df_filtered' in locals():
     team_excel = io.BytesIO()
     with pd.ExcelWriter(team_excel, engine="xlsxwriter") as writer:
         team_summary.to_excel(writer, index=False, sheet_name="Team Summary")
-        writer.save()
+        
     st.download_button(
         label="Download Team-wise Summary",
         data=team_excel.getvalue(),
