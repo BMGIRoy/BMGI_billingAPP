@@ -189,7 +189,7 @@ if 'df_filtered' in locals():
     # 👇 Check if these columns exist before grouping
 if "Year" in df_filtered.columns and "Month" in df_filtered.columns:
     try:
-    month_summary = df_filtered.groupby(["Year", "Month"])[
+        month_summary = df_filtered.groupby(["Year", "Month"])[
         column_map["Billed Amount"], column_map["Net Amount"]
     ].sum().reset_index()
     st.dataframe(month_summary)
